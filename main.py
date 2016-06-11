@@ -13,28 +13,16 @@ from util import shared_from_array, get_progress_bar
 import multiprocessing
 
 
-# def crunch_(sigma2, theta, m, ii):
-#   i = int(ii)
-#   k = range(N - 2*m[i])
-#   sigma2[:,i] = np.sum( np.power( theta[:,k+2*m[i]] - 2*theta[:,k+m[i]] + theta[:,k] , 2 ), axis=1)
-
-
-def crunch_(*args):
-  sigma2 = args[0]
-  theta = args[1]
-  m = args[2]
-  i = int(args[3])
+def crunch_(sigma2, theta, m, N, ii):
+  i = int(ii)
   k = range(N - 2*m[i])
   sigma2[:,i] = np.sum( np.power( theta[:,k+2*m[i]] - 2*theta[:,k+m[i]] + theta[:,k] , 2 ), axis=1)
 
 
-def genit(sigma2, theta, m, desc):
-  for i in range(len(m)):
-    yield sigma2, theta, m, i
 
-
-# def genit(sigma2, theta, m, range_it):
-#   yield ((sigma2, theta, m, ii) for ii in range_it)
+# def genit(sigma2, theta, m, desc):
+#   for i in range(len(m)):
+#     yield sigma2, theta, m, i
 
 
 def main():
@@ -68,26 +56,18 @@ def main():
   sigma2_gyr = shared_from_array( np.zeros((M, len(m))) )
   sigma2_acc = shared_from_array( np.zeros((M, len(m))) )
 
-  # for ii in trange(len(m), desc='Loop over all Tau values', smoothing=True):
-  pool = multiprocessing.Pool(4)
-  tic_prime = time()
+  print 'creating procs'
+  gyr_procs = [multiprocessing.Process(target=crunch_, args=(sigma2_gyr, theta_gyr, m, N, i)) for i in xrange(len(m))]
+  acc_procs = [multiprocessing.Process(target=crunch_, args=(sigma2_acc, theta_acc, m, N, i)) for i in xrange(len(m))]
+  for i in trange(len(m), desc='starting procs'):
+    gyr_procs[i].start()
+    acc_procs[i].start()
+  print 'joining procs'
+  for i in range(len(m)):
+    gyr_procs[i].join()
+    acc_procs[i].join()
 
-  # loop over gyro
-  print 'Calculating gyro allan dev'
-  # tic_gyr = time()
-  gyr_arg_it = genit(sigma2_gyr, theta_gyr, m, 'Gyro')
-  res_gyr = pool.map(crunch_, gyr_arg_it)
-  # print 'Gyro time: ', time() - tic_gyr
-  
-  # loop over accel
-  print 'Calculating accel allan dev'
-  # tic_acc = time()
-  acc_arg_it = genit(sigma2_acc, theta_acc, m, 'Accel')
-  res_acc = pool.map(crunch_, acc_arg_it)
-  # print 'Accel time: ', time() - tic_acc
-
-  pool.close()
-  print 'Total time: ', time() - tic_prime, 's'
+  print 'full batch operations'
 
   div = np.tile(2*np.multiply(np.power(T,2), N-2*m), (M,1))
   sigma2_gyr = np.divide(sigma2_gyr, div)

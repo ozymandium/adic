@@ -26,3 +26,11 @@ def shared_from_array(arr):
   shared_arr[:] = arr[:]
   
   return shared_arr
+
+
+def chunk(lst, n):
+  """
+  divide list `lst` into `n` unordered chunks
+  http://stackoverflow.com/a/2136090
+  """
+  return [ lst[i::n] for i in xrange(n) ]

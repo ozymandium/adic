@@ -1,8 +1,8 @@
 import sys, os
-from sensors import IMUEpoch
 import numpy as np
 # from tqdm import tqdm
 from util import get_progress_bar
+from ipdb import set_trace
 
 
 DATA_TYPE = np.float64
@@ -62,7 +62,8 @@ def parse_imu_separate(alog_filen, app_name, gyr_names, acc_names):
   data_count = 0
 
   var_names = list(gyr_names) + list(acc_names)
-  cur_time = {n: None for n in var_names}
+  neg_ints = range(-1, -(len(var_names)+1), -1)
+  cur_time = {var_names[k]: neg_ints[k] for k in range(len(var_names))}
   cur_data = {n: None for n in var_names}
 
   print 'Iterating through file'
@@ -93,6 +94,7 @@ def parse_imu_separate(alog_filen, app_name, gyr_names, acc_names):
         time_arr[data_count] = cur_time[gyr_names[0]]
         gyr_arr[:,data_count] = [cur_data[req_name] for req_name in gyr_names]
         acc_arr[:,data_count] = [cur_data[req_name] for req_name in acc_names]
+        # set_trace()
         data_count += 1
 
       line_count += 1
@@ -100,8 +102,13 @@ def parse_imu_separate(alog_filen, app_name, gyr_names, acc_names):
 
   # chop off end of arrays that didn't get filled
   print 'resizing'
-  gyr_arr = np.resize(gyr_arr, (n_gyr_names, data_count))
-  acc_arr = np.resize(acc_arr, (n_acc_names, data_count))
+  time_arr = time_arr[:data_count]
+  gyr_arr = gyr_arr[:,:data_count]
+  acc_arr = acc_arr[:,:data_count]
+
+  if time_arr[-1] == 0:
+    print 'end time 0'
+    set_trace()
 
   # Every time you rewrite a parser function to get data into arrays,
   # it needs to output a dict with these fields and data types, even if one of 

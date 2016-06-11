@@ -8,7 +8,7 @@ Usage:
   ./example_moos_xbow440.py <recorded_data>.alog <out_file>.cloudpickle
 """
 import sys, os
-from alog import parse_imu_separate
+from adic.alog import parse_imu_separate
 import cloudpickle
 import numpy as np
 

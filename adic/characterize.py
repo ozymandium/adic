@@ -2,12 +2,17 @@
 import matplotlib.pyplot as plt
 import cloudpickle
 import sys, os
+from ipdb import set_trace
 
 
 def main():
 
   with open(os.path.abspath(sys.argv[1]), 'rb') as f:
-    locals().update(cloudpickle.load(f))
+    data = cloudpickle.load(f)
+
+  T = data['T']
+  sigma_gyr = data['sigma_gyr']
+  sigma_acc = data['sigma_acc']
 
   plt.subplot(2,1,1)
   plt.loglog(T, sigma_gyr[0,:],

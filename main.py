@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 
 """
@@ -8,7 +9,7 @@ import cloudpickle
 import sys, os
 from tqdm import trange
 from time import time
-
+from util import shared_from_array
 
 def main():
 
@@ -42,10 +43,9 @@ def main():
   sigma2_acc = np.zeros((M, len(m)))
 
   print 'Calculating'
-  for ii in trange(1, len(m), desc='Loop over all Tau values'):
+  for ii in trange(len(m), desc='Loop over all Tau values', smoothing=True):
     i = int(ii)
-
-    k = range(1, N - 2*m[i])
+    k = range(N - 2*m[i])
     sigma2_gyr[:,i] = np.sum( np.power( theta_gyr[:,k+2*m[i]] - 2*theta_gyr[:,k+m[i]] + theta_gyr[:,k] , 2 ), axis=1)
     sigma2_acc[:,i] = np.sum( np.power( theta_acc[:,k+2*m[i]] - 2*theta_acc[:,k+m[i]] + theta_acc[:,k] , 2 ), axis=1)
 

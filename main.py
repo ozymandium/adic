@@ -19,12 +19,6 @@ def crunch_(sigma2, theta, m, N, ii):
   sigma2[:,i] = np.sum( np.power( theta[:,k+2*m[i]] - 2*theta[:,k+m[i]] + theta[:,k] , 2 ), axis=1)
 
 
-
-# def genit(sigma2, theta, m, desc):
-#   for i in range(len(m)):
-#     yield sigma2, theta, m, i
-
-
 def main():
 
   print 'Loading data'

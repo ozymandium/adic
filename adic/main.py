@@ -11,9 +11,20 @@ from tqdm import trange, tqdm
 from time import time
 from util import shared_from_array, get_progress_bar
 import multiprocessing
+import argparse
 
 
-def crunch_(sigma2, theta, m, N, ii):
+argparser = argparse.ArgumentParser()
+argparser.add_argument('in_file', help='large input text file (newline delimited)')
+argparser.add_argument('out_file', help='output file')
+argparser.add_argument('-p', '--points', default=10000)
+
+
+
+def adev_at_tau(sigma2, theta, m, N, ii):
+  """worker function for parallelization. first part of the Allan deviation 
+  equation
+  """
   i = int(ii)
   k = range(N - 2*m[i])
   sigma2[:,i] = np.sum( np.power( theta[:,k+2*m[i]] - 2*theta[:,k+m[i]] + theta[:,k] , 2 ), axis=1)
@@ -21,9 +32,13 @@ def crunch_(sigma2, theta, m, N, ii):
 
 def main():
 
+  args = argparser.parse_args()
+  n_pts = int(args.points)
+
   print 'Loading data'
-  with open(os.path.abspath(sys.argv[1]), 'rb') as alog_file:
-    data = cloudpickle.load(alog_file)
+  with open(os.path.abspath(args.in_file), 'rb') as f:
+    data = cloudpickle.load(f)
+  time_arr = data['time_arr']
   gyr_arr = data['gyr_arr']
   acc_arr = data['acc_arr']
   
@@ -34,10 +49,9 @@ def main():
   M, N = gyr_arr.shape
 
   # automate this?
-  fs = np.float64(100)
+  print 'Computing mean dt'
+  fs = np.mean(np.diff(time_arr))
   t0 = np.float64(1.0)/fs
-
-  n_pts = 10000
 
   n = np.power(2, np.arange(np.floor(np.log2(N/2.))))
   end_log_inc = np.log10(n[-1])
@@ -51,8 +65,8 @@ def main():
   sigma2_acc = shared_from_array( np.zeros((M, len(m))) )
 
   print 'creating procs'
-  gyr_procs = [multiprocessing.Process(target=crunch_, args=(sigma2_gyr, theta_gyr, m, N, i)) for i in xrange(len(m))]
-  acc_procs = [multiprocessing.Process(target=crunch_, args=(sigma2_acc, theta_acc, m, N, i)) for i in xrange(len(m))]
+  gyr_procs = [multiprocessing.Process(target=adev_at_tau, args=(sigma2_gyr, theta_gyr, m, N, i)) for i in xrange(len(m))]
+  acc_procs = [multiprocessing.Process(target=adev_at_tau, args=(sigma2_acc, theta_acc, m, N, i)) for i in xrange(len(m))]
   for i in trange(len(m), desc='starting procs'):
     gyr_procs[i].start()
     acc_procs[i].start()
@@ -69,7 +83,7 @@ def main():
   sigma_gyr = np.sqrt(sigma2_gyr)
   sigma_acc = np.sqrt(sigma2_acc)
 
-  out_file_name = os.path.abspath(sys.argv[2])
+  out_file_name = os.path.abspath(args.out_file)
   print 'saving to: ', out_file_name
   with open(out_file_name, 'wb') as f:
     cloudpickle.dump(
@@ -82,7 +96,3 @@ def main():
       },
       f, -1
     )
-
-
-if __name__ == '__main__':
-  main()

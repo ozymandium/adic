@@ -2,6 +2,10 @@
 """
 Example of how to parse MOOS alog data into the NumPy arrays expected by this
 package. Saves a data file.
+
+Usage:
+  
+  ./example_moos_xbow440.py <recorded_data>.alog <out_file>.cloudpickle
 """
 import sys, os
 from alog import parse_imu_separate
@@ -21,7 +25,8 @@ data = parse_imu_separate(
 )
 
 # optionally save the parsed matrices
-out_file_name = '/tmp/xbow440_parsed_arrays.cloudpickle'
+# out_file_name = '/tmp/xbow440_parsed_arrays.cloudpickle'
+out_file_name = os.path.abspath(sys.argv[2])
 print 'Saving arrays to disc: ', out_file_name
 with open(out_file_name, 'wb') as f:
   cloudpickle.dump(data, f, -1)

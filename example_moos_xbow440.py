@@ -22,7 +22,6 @@ data = parse_imu_separate(
 
 # optionally save the parsed matrices
 out_file_name = '/tmp/xbow440_parsed_arrays.cloudpickle'
-print 'Saving arrays to disc.'
+print 'Saving arrays to disc: ', out_file_name
 with open(out_file_name, 'wb') as f:
   cloudpickle.dump(data, f, -1)
-print 'saved data to: ', out_file_name

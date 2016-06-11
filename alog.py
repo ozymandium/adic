@@ -1,10 +1,18 @@
 import sys, os
 from sensors import IMUEpoch
 import numpy as np
-from main import get_progress_bar
+# from tqdm import tqdm
+from util import get_progress_bar
 
 
-DATA_TYPE = np.float32
+DATA_TYPE = np.float64
+
+PBAR_ARGS = {
+  'dynamic_ncols': True,
+  'smoothing': True,
+  'ascii': True,
+  'bar_format': '{l_bar}{bar}{r_bar}',
+}
 
 
 def file_line_count(file_name):
@@ -52,13 +60,14 @@ def parse_imu_separate(alog_filen, app_name, gyr_names, acc_names):
 
   line_count = 0
   data_count = 0
-  pbar = get_progress_bar(n_lines)
 
   var_names = list(gyr_names) + list(acc_names)
   cur_time = {n: None for n in var_names}
   cur_data = {n: None for n in var_names}
 
   print 'Iterating through file'
+  pbar = get_progress_bar(n_lines)
+  # pbar = tqdm(total=int(n_lines), **PBAR_ARGS)
   with open(alog_filen, 'r') as alog_file:
     for line in alog_file:
       if line[0] == '%':

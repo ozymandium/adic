@@ -10,7 +10,7 @@ setup(
   ],
   entry_points = {
     'console_scripts': [
-      'adic-adev = adic.main:main',
+      'adic-adev = adic.adev:main',
       'adic-char = adic.characterize:main',
     ],
   },

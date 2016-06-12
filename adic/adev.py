@@ -16,7 +16,6 @@ import argparse
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('in_file', help='large input text file (newline delimited)')
-argparser.add_argument('out_file', help='output file')
 argparser.add_argument('-p', '--points', default=10000)
 
 
@@ -92,7 +91,9 @@ def main():
   sigma_gyr = np.sqrt(sigma2_gyr)
   sigma_acc = np.sqrt(sigma2_acc)
 
-  out_file_name = os.path.abspath(args.out_file)
+  data_dir, in_name = os.path.split(os.path.abspath(args.in_file))
+  set_name, ext = in_name.split(os.extsep)
+  out_file_name = os.path.join(data_dir, set_name+'_adev'+os.extsep+ext)
   print 'saving to: ', out_file_name
   with open(out_file_name, 'wb') as f:
     cloudpickle.dump(

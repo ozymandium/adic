@@ -11,7 +11,8 @@ setup(
   entry_points = {
     'console_scripts': [
       'adic-adev = adic.adev:main',
-      'adic-char = adic.characterize:main',
+      'adic-acor = adic.acor:main',
+      'adic-char = adic.char:main',
     ],
   },
 )

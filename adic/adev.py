@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 
 """
@@ -16,7 +15,8 @@ import argparse
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('in_file', help='large input text file (newline delimited)')
-argparser.add_argument('-p', '--points', default=10000)
+argparser.add_argument('-p', '--points', default=10000, help='Number of linear tau points to sample')
+argparser.add_argument('-j', '--cores', default=4, help='Number of subprocesses to use (# CPU cores)')
 
 
 def main():
@@ -27,9 +27,11 @@ def main():
   print 'Loading data'
   with open(os.path.abspath(args.in_file), 'rb') as f:
     data = cloudpickle.load(f)
-  time_arr = data['time_arr']
-  gyr_arr = data['gyr_arr']
-  acc_arr = data['acc_arr']
+
+  print 'subtracting mean'
+  time_arr = data['time_arr'] - np.mean(data['time_arr'])
+  gyr_arr = data['gyr_arr']   - np.tile( np.mean(data['gyr_arr'],  axis=1).reshape((3,1)), (1,data['gyr_arr'].shape[1]) )
+  acc_arr = data['acc_arr']   - np.tile( np.mean(data['acc_arr'],  axis=1).reshape((3,1)), (1,data['acc_arr'].shape[1]) )
   
   # M: number of axes
   # N: number of epochs
@@ -77,7 +79,7 @@ def main():
 
 
   print 'creating procs'
-  idx_chunks = chunk(range(len(m)), 4)
+  idx_chunks = chunk(range(len(m)), int(args.cores))
   procs = [multiprocessing.Process(target=adev_at_tau_wrapper, args=(ichnk,)) for ichnk in idx_chunks]
   print '# chunks: ', len(procs)
   for proc in procs:

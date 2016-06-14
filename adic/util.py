@@ -2,7 +2,7 @@ from progressbar import ProgressBar, Bar, Percentage, AdaptiveETA, Counter, Time
 import multiprocessing
 import ctypes
 import numpy as np
-import scipy as sp
+from scipy.signal import fftconvolve
 
 
 def get_progress_bar(n):
@@ -38,14 +38,21 @@ def chunk(lst, n):
   return [ lst[i::n] for i in xrange(n) ]
 
 
-def autocorr(a):
+def autocorrelation(a):
   """use fft to compute the autocorrelation function of a timeseries signal
   """
-  if len(a.shape) > 1:
-    raise Exception('1D only!')
-  l = len(a)
-  b = np.zeros((l*2))
-  b[:l] = a
-  b = np.roll(b, l/4)
-  b.rotate(l/2)
-  return sp.fftconvolve(b, a[::-1, mode='valid'])
+
+  # # Stackoverflow
+  # if len(a.shape) > 1:
+  #   raise Exception('1D only!')
+  # l = len(a)
+  # b = np.zeros((l*2))
+  # b[:l] = a
+  # b = np.roll(b, l/4)
+  # b.rotate(l/2)
+  # return sp.fftconvolve(b, a[::-1, mode='valid')
+
+  # # SciPy docs
+  return fftconvolve(a, a[::-1], mode='full')
+
+

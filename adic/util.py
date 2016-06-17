@@ -56,3 +56,12 @@ def autocorrelation(a):
   return fftconvolve(a, a[::-1], mode='full')
 
 
+def scroll_avg_filter(y, N):
+  """Wrapped averaging. only use this for data that should be static.
+  It computes the rolling average of the ends of the data set using the opposite
+  side of the timeseries
+  this is efficient because it is insensitive to the size of the averaging window.
+  """
+  d = 2*N+1
+  cs = np.cumsum(np.hstack((y[:,-N-1:], y, y[:,:N])), axis=1)
+  return (cs[:,d:]-cs[:,:-d]) / np.float64(d)

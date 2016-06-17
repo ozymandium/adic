@@ -5,18 +5,13 @@ import numpy as np
 import sys, os
 import multiprocessing
 from ipdb import set_trace
-from util import shared_from_array, autocorrelation
+from util import *
 import cloudpickle
-from scipy import signal
+from scipy.signal import filtfilt, butter
+from time import time
+from tqdm import trange
 
 
-def avg_filter(arr, n):
-  warr = arr.copy()
-  for i in range(n):
-    warr += np.roll(arr, i+1)
-    warr += np.roll(arr, -i-1)
-  warr /= np.float64(2*n+1)
-  return warr
 
 
 def main():
@@ -31,23 +26,35 @@ def main():
   with open(os.path.join(data_dir, in_name), 'rb') as f:
     data = cloudpickle.load(f)
   print 'subtracting mean'
-  time_arr = data['time_arr'] - np.mean(data['time_arr'])
-  gyr_arr = data['gyr_arr']   - np.tile( np.mean(data['gyr_arr'],  axis=1).reshape((3,1)), (1,data['gyr_arr'].shape[1]) )
-  acc_arr = data['acc_arr']   - np.tile( np.mean(data['acc_arr'],  axis=1).reshape((3,1)), (1,data['acc_arr'].shape[1]) )
+  time_arr = shared_from_array( data['time_arr'] - np.mean(data['time_arr']) )
+  gyr_arr = shared_from_array( data['gyr_arr']   - np.tile( np.mean(data['gyr_arr'],  axis=1).reshape((3,1)), (1,data['gyr_arr'].shape[1]) ) )
+  acc_arr = shared_from_array( data['acc_arr']   - np.tile( np.mean(data['acc_arr'],  axis=1).reshape((3,1)), (1,data['acc_arr'].shape[1]) ) )
 
+  win_size_gyr = int(sys.argv[2])
+  win_size_acc = int(sys.argv[3])
+  print 'Averaging window size for gyro:  ', win_size_gyr
+  print 'Averaging window size for accel: ', win_size_acc
   print 'filtering data'
-
+  
   # # Wall recommends iterative zero-phase low pass filtering
-  # b, a = signal.butter(2, 0.1)
-  # gyr_arr = signal.filtfilt(b, a, gyr_arr, axis=1)
-  # acc_arr = signal.filtfilt(b, a, acc_arr, axis=1)
+  # b, a = butter(2, 0.1)
+  # gyr_arr = filtfilt(b, a, gyr_arr, axis=1)
+  # acc_arr = filtfilt(b, a, acc_arr, axis=1)
+  
+  # b_gyr = np.ones((win_size_gyr,))
+  # b_acc = np.ones((win_size_acc,))
+  # a_gyr = np.zeros((win_size_gyr+1,))
+  # a_acc = np.zeros((win_size_acc+1,))
+  # a_gyr[0] = np.float64(win_size_gyr)
+  # a_acc[0] = np.float64(win_size_acc)
+
+  # gyr_arr = filtfilt(b_gyr, a_gyr, gyr_arr, axis=1)
+  # acc_arr = filtfilt(b_acc, a_acc, acc_arr, axis=1)
 
   # rather than try to design a filter iteratively by selecting cutoff frequencies
   # simply do windowed averaging
-  gyr_arr = avg_filter(gyr_arr, int(sys.argv[2]))
-  acc_arr = avg_filter(acc_arr, int(sys.argv[2]))
-
-  print 'done'
+  gyr_arr = scroll_avg_filter(gyr_arr, win_size_gyr)
+  acc_arr = scroll_avg_filter(acc_arr, win_size_acc)
 
 
   N = len(time_arr)
@@ -55,17 +62,21 @@ def main():
   acor_gyr = np.empty((3,2*N-1))
   acor_acc = np.empty((3,2*N-1))
 
-  print 'calculating...'
+  print 'calculating autocorrelation...'
   for i in range(3):
     acor_gyr[i,:] = autocorrelation(gyr_arr[i,:])
     acor_acc[i,:] = autocorrelation(acc_arr[i,:])
-  print 'done'
+  print 'done. saving data...'
 
   with open(out_file_name, 'wb') as f:
     cloudpickle.dump(
       {
-        'acor_gyr': acor_gyr[:,N-1:],
-        'acor_acc': acor_acc[:,N-1:],
+        'win_size_gyr': win_size_gyr,
+        'win_size_acc': win_size_acc,
+        'gyr_arr_filt': gyr_arr,
+        'acc_arr_filt': acc_arr,
+        'acor_gyr': acor_gyr[:,N:],
+        'acor_acc': acor_acc[:,N:],
       },
       f, -1
     )

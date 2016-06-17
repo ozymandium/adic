@@ -29,14 +29,17 @@ def main():
   print 'Data set name: ', set_name
   print 'Allan deviation file:', adev_file_name
   print 'Autocorrelation file:', acor_file_name
-
-  print 'Loading data files...'
+  print 'Loading data ...'
   with open(os.path.abspath(sys.argv[1]), 'rb') as f:
     data = cloudpickle.load(f)
   with open(adev_file_name, 'rb') as f:
     adev = cloudpickle.load(f)
   with open(acor_file_name, 'rb') as f:
     acor = cloudpickle.load(f)
+  
+  print 'Moving average filter sizes:' 
+  print '  Gyro: ', acor['win_size_gyr']
+  print '  Accel:', acor['win_size_acc']
 
   t0 = np.mean(np.diff(data['time_arr']))
   fs = np.float64(1.0)/t0
@@ -47,6 +50,8 @@ def main():
   sigma2_gyr = adev['sigma2_gyr']
   sigma2_acc = adev['sigma2_acc']
 
+  gyr_arr_filt = acor['gyr_arr_filt']
+  acc_arr_filt = acor['acc_arr_filt']
   acor_gyr = acor['acor_gyr']
   acor_acc = acor['acor_acc']
   acor_dt = np.arange(acor_gyr.shape[1])*t0
@@ -73,30 +78,39 @@ def main():
 
   print 'Markov Time Constant:'
 
-  print '  Gyro'
   acor_gyr0 = np.tile(acor_gyr[:,0].reshape((3,1)), (1,acor_gyr.shape[1]))
   taubg_idxs = np.argmax(acor_gyr < acor_gyr0*np.float64('0.368'), axis=1)
   taubg = np.array([acor_dt[i] for i in taubg_idxs])
-  print '    Tau = ', taubg
+  print '  Gyro  Tau = ', taubg
 
-  print '  Gyro'
   acor_acc0 = np.tile(acor_acc[:,0].reshape((3,1)), (1,acor_acc.shape[1]))
   tauba_idxs = np.argmax(acor_acc < acor_acc0*np.float64('0.368'), axis=1)
   tauba = np.array([acor_dt[i] for i in tauba_idxs])
-  print '    Tau = ', tauba
+  print '  Accel Tau = ', tauba
 
+  #### compute bias 
+
+  print 'Bias Driving Noise:'
+
+  std_gyr_bias = np.std(gyr_arr_filt, axis=1)
+  std_ngu = np.sqrt( np.divide(2*fs*np.power(std_gyr_bias, 2), taubg) )
+  print '  Gyro  Std Dev =', std_ngu
+
+  std_acc_bias = np.std(acc_arr_filt, axis=1)
+  std_nau = np.sqrt( np.divide(2*fs*np.power(std_acc_bias, 2), tauba) )
+  print '  Accel Std Dev =', std_nau
 
   #### plotting
 
   win1 = pg.GraphicsWindow()
   fig11 = win1.addPlot(row=0, col=0)
   fig11.addLegend()
-  fig11.setLabels(left='\sigma Gyro', bottom='\Tau')
+  fig11.setLabels(left='&sigma;<sub>Allan</sub>', bottom='&tau; (sec)', top='Gyroscope')
   fig11.setLogMode(x=True, y=True)
   fig11.showGrid(x=True, y=True, alpha=0.5)
   fig12 = win1.addPlot(row=1, col=0)
   fig12.addLegend()
-  fig12.setLabels(left='\sigma Accel', bottom='\Tau')
+  fig12.setLabels(left='&sigma;<sub>Allan</sub>', bottom='&tau; (sec)', top='Accelerometer')
   fig12.setLogMode(x=True, y=True)
   fig12.showGrid(x=True, y=True, alpha=0.5)
 
@@ -108,14 +122,14 @@ def main():
   win2 = pg.GraphicsWindow()
   fig21 = win2.addPlot(row=0, col=0)
   fig21.addLegend()
-  fig21.setLabels(left='Autocorr Gyro', bottom='\Delta t')
+  fig21.setLabels(left='Autocorr Gyro', bottom='&Delta; t')
   # fig21.setLogMode(x=True, y=True)
   fig21.showGrid(x=True, y=True, alpha=0.5)
   fig21.setDownsampling(auto=True, mode='peak')
   fig21.setClipToView(True)  
   fig22 = win2.addPlot(row=1, col=0)
   fig22.addLegend()
-  fig22.setLabels(left='Autocorr Accel', bottom='\Delta t')
+  fig22.setLabels(left='Autocorr Accel', bottom='&Delta; t')
   # fig22.setLogMode(x=True, y=True)
   fig22.showGrid(x=True, y=True, alpha=0.5)
   fig22.setDownsampling(auto=True, mode='peak')

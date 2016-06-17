@@ -59,10 +59,15 @@ def main():
   sigma2_gyr = shared_from_array( np.zeros((M, len(m))) )
   sigma2_acc = shared_from_array( np.zeros((M, len(m))) )
 
+  # shared memory/serialization workaround: define calculation functions here so
+  # that the shared memory arrays are in scope
 
   def adev_at_tau(i):
     """worker function for parallelization. first part of the Allan deviation 
-    equation
+    equation.
+    There is potentially a way to do the Allan deviation calculation without any
+    for loop whatsoever, but I haven't figured it out yet. It would require 2D
+    array indexing in NumPy.
     """
     k = range(N - 2*m[i])
     sigma2_gyr[:,i] = np.sum( np.power( theta_gyr[:,k+2*m[i]] - 2*theta_gyr[:,k+m[i]] + theta_gyr[:,k] , 2 ), axis=1)
